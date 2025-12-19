@@ -192,3 +192,143 @@ The probe for check database connection
       done
       echo database is ready
 {{- end }}
+
+
+{{/*
+Common image pull secrets
+*/}}
+{{- define "common.imagePullSecrets" -}}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common node selector
+Usage: {{ include "common.nodeSelector" .Values.componentName | nindent 6 }}
+*/}}
+{{- define "common.nodeSelector" -}}
+{{- with .nodeSelector }}
+nodeSelector:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common affinity
+Usage: {{ include "common.affinity" .Values.componentName | nindent 6 }}
+*/}}
+{{- define "common.affinity" -}}
+{{- with .affinity }}
+affinity:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common tolerations
+Usage: {{ include "common.tolerations" .Values.componentName | nindent 6 }}
+*/}}
+{{- define "common.tolerations" -}}
+{{- with .tolerations }}
+tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common pod security context
+Usage: {{ include "common.podSecurityContext" .Values.componentName | nindent 6 }}
+*/}}
+{{- define "common.podSecurityContext" -}}
+{{- with .securityContext }}
+securityContext:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common container security context
+Usage: {{ include "common.containerSecurityContext" .Values.componentName | nindent 10 }}
+*/}}
+{{- define "common.containerSecurityContext" -}}
+{{- with .containerSecurityContext }}
+securityContext:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common resources
+Usage: {{ include "common.resources" .Values.componentName | nindent 10 }}
+*/}}
+{{- define "common.resources" -}}
+{{- with .resources }}
+resources:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Common image configuration
+Handles the image tag selection logic (component.image.tag or default imageTag)
+Usage: {{ include "common.image" (dict "component" .Values.ui "defaultTag" .Values.imageTag) }}
+*/}}
+{{- define "common.image" -}}
+{{- if .component.image.tag -}}
+image: "{{ .component.image.repository }}:{{ .component.image.tag }}"
+{{- else -}}
+image: "{{ .component.image.repository }}:{{ .defaultTag }}"
+{{- end -}}
+{{- end }}
+
+
+{{/*
+Common environment variables from commonEnvs
+Usage: {{ include "common.envs" . | nindent 12 }}
+*/}}
+{{- define "common.envs" -}}
+{{- range $key, $value := .Values.commonEnvs }}
+- name: "{{ tpl $key $ }}"
+  value: "{{ tpl (print $value) $ }}"
+{{- end }}
+{{- end }}
+
+
+{{/*
+Ingress API version based on Kubernetes version
+*/}}
+{{- define "common.ingress.apiVersion" -}}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+networking.k8s.io/v1beta1
+{{- else -}}
+extensions/v1beta1
+{{- end -}}
+{{- end }}
+
+
+{{/*
+Ingress backend configuration based on Kubernetes version
+Usage: {{ include "common.ingress.backend" (dict "context" $ "serviceName" $uiServiceName "servicePort" 4000) | nindent 14 }}
+*/}}
+{{- define "common.ingress.backend" -}}
+{{- if semverCompare ">=1.19-0" .context.Capabilities.KubeVersion.GitVersion }}
+service:
+  name: {{ .serviceName }}
+  port:
+    number: {{ .servicePort }}
+{{- else }}
+serviceName: {{ .serviceName }}
+servicePort: {{ .servicePort }}
+{{- end }}
+{{- end }}
