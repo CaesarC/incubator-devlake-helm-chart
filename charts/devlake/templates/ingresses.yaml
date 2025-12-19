@@ -23,13 +23,7 @@
   {{- end }}
 {{- end }}
 ---
-{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1
-{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1beta1
-{{- else -}}
-apiVersion: extensions/v1beta1
-{{- end }}
+apiVersion: {{ include "common.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
   name: {{ $fullName }}
@@ -62,42 +56,20 @@ spec:
             pathType: Prefix
             {{- end }}
             backend:
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
-              service:
-                name: {{ .Values.grafana.ingressServiceName | default ( include "grafana.fullname" (dict "Values" .Values.grafana "Chart" (dict "Name" "grafana") "Release" .Release ) ) }}
-                port:
-                  number: {{ .Values.grafana.ingressServicePort | default .Values.grafana.service.port }}
-              {{- else }}
-              serviceName: {{ .Values.grafana.ingressServiceName | default ( include "grafana.fullname" (dict "Values" .Values.grafana "Chart" (dict "Name" "grafana") "Release" .Release ) ) }}
-              servicePort: {{ .Values.grafana.ingressServicePort | default .Values.grafana.service.port }}
-              {{- end }}
+              {{- include "common.ingress.backend" (dict "context" $ "serviceName" (.Values.grafana.ingressServiceName | default ( include "grafana.fullname" (dict "Values" .Values.grafana "Chart" (dict "Name" "grafana") "Release" .Release ) )) "servicePort" (.Values.grafana.ingressServicePort | default .Values.grafana.service.port)) | nindent 14 }}
           {{- end }}
           - path: /{{ include "devlake.uiEndpointPrefix" . }}
             {{- if semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion }}
             pathType: Prefix
             {{- end }}
             backend:
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
-              service:
-                name: {{ $uiServiceName }}
-                port:
-                  number: 4000
-              {{- else }}
-              serviceName: {{ $uiServiceName }}
-              servicePort: 4000
-              {{- end }}
+              {{- include "common.ingress.backend" (dict "context" $ "serviceName" $uiServiceName "servicePort" 4000) | nindent 14 }}
           {{- if .Values.ingress.extraPaths }}
             {{- toYaml .Values.ingress.extraPaths | nindent 10 }}
           {{- end }}
 {{- if and .Values.ingress.useDefaultNginx (not .Values.grafana.enabled) }}
 ---
-{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1
-{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1beta1
-{{- else -}}
-apiVersion: extensions/v1beta1
-{{- end }}
+apiVersion: {{ include "common.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
   name: {{ $fullName }}-ext-grafana
@@ -129,14 +101,6 @@ spec:
             pathType: ImplementationSpecific
             {{- end }}
             backend: # dummy to config-ui, actual 302 forearding for external grafana
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
-              service:
-                name: {{ $uiServiceName }}
-                port:
-                  number: 4000
-              {{- else }}
-              serviceName: {{ $uiServiceName }}
-              servicePort: 4000
-              {{- end }}
+              {{- include "common.ingress.backend" (dict "context" $ "serviceName" $uiServiceName "servicePort" 4000) | nindent 14 }}
 {{- end }}
 {{- end }}

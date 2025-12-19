@@ -41,14 +41,8 @@ spec:
       annotations:
         {{- toYaml .Values.mysql.podAnnotations | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.mysql.securityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "common.imagePullSecrets" . | nindent 6 }}
+      {{- include "common.podSecurityContext" .Values.mysql | nindent 6 }}
       {{- with .Values.mysql.initContainers}}
       initContainers:
         {{- toYaml . | nindent 8 }}
@@ -82,39 +76,21 @@ spec:
                 - "mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD"
             initialDelaySeconds: 5
             timeoutSeconds: 10
-          {{- with .Values.mysql.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+          {{- include "common.resources" .Values.mysql | nindent 10 }}
           envFrom:
             - secretRef:
                 name: {{ include "devlake.mysql.secret" . }}
           env:
-            {{- range $key, $value := .Values.commonEnvs }}
-            - name: "{{ tpl $key $ }}"
-              value: "{{ tpl (print $value) $ }}"
-            {{- end }}
+            {{- include "common.envs" . | nindent 12 }}
           {{- if or (eq .Values.mysql.storage.type "pvc") (eq .Values.mysql.storage.type "hostpath") }}
           volumeMounts:
             - mountPath: /var/lib/mysql
               name: {{ include "devlake.fullname" . }}-mysql-data
           {{- end }}
-          {{- with .Values.mysql.containerSecurityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.mysql.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.mysql.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.mysql.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+          {{- include "common.containerSecurityContext" .Values.mysql | nindent 10 }}
+      {{- include "common.nodeSelector" .Values.mysql | nindent 6 }}
+      {{- include "common.affinity" .Values.mysql | nindent 6 }}
+      {{- include "common.tolerations" .Values.mysql | nindent 6 }}
       {{- if eq .Values.mysql.storage.type "hostpath" }}
       volumes:
         - name: {{ include "devlake.fullname" . }}-mysql-data

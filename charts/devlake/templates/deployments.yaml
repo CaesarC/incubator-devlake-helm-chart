@@ -46,24 +46,14 @@ spec:
       annotations:
         {{- toYaml .Values.ui.podAnnotations | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.ui.securityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "common.imagePullSecrets" . | nindent 6 }}
+      {{- include "common.podSecurityContext" .Values.ui | nindent 6 }}
       containers:
       {{- with .Values.ui.extraContainers }}
         {{- tpl (toYaml .) $ | nindent 8 }}
       {{- end }}
         - name: config-ui
-{{- if .Values.ui.image.tag }}
-          image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
-{{- else }}
-          image: "{{ .Values.ui.image.repository }}:{{ .Values.imageTag }}"
-{{- end }}
+          {{- include "common.image" (dict "component" .Values.ui "defaultTag" .Values.imageTag) | nindent 10 }}
           imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
           ports:
             - containerPort: 4000
@@ -92,30 +82,12 @@ spec:
             - name: GRAFANA_ENDPOINT
               value: {{ .Release.Name }}-grafana.{{ .Release.Namespace }}.svc.cluster.local:80
 {{- end }}
-            {{- range $key, $value := .Values.commonEnvs }}
-            - name: "{{ tpl $key $ }}"
-              value: "{{ tpl (print $value) $ }}"
-            {{- end }}
-          {{- with .Values.ui.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.ui.containerSecurityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.ui.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.ui.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.ui.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            {{- include "common.envs" . | nindent 12 }}
+          {{- include "common.resources" .Values.ui | nindent 10 }}
+          {{- include "common.containerSecurityContext" .Values.ui | nindent 10 }}
+      {{- include "common.nodeSelector" .Values.ui | nindent 6 }}
+      {{- include "common.affinity" .Values.ui | nindent 6 }}
+      {{- include "common.tolerations" .Values.ui | nindent 6 }}
 
 ---
 # devlake
@@ -149,14 +121,8 @@ spec:
       annotations:
         {{- toYaml .Values.lake.podAnnotations | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.lake.securityContext }}
-      securityContext:
-      {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "common.imagePullSecrets" . | nindent 6 }}
+      {{- include "common.podSecurityContext" .Values.lake | nindent 6 }}
       initContainers:
         {{- include "common.initContainerWaitDatabase" . | nindent 8 }}
         {{- with .Values.lake.containerSecurityContext }}
@@ -165,11 +131,7 @@ spec:
       {{- end }}
       containers:
         - name: lake
-          {{- if .Values.lake.image.tag }}
-          image: "{{ .Values.lake.image.repository }}:{{ .Values.lake.image.tag }}"
-          {{- else }}
-          image: "{{ .Values.lake.image.repository }}:{{ .Values.imageTag }}"
-          {{- end }}
+          {{- include "common.image" (dict "component" .Values.lake "defaultTag" .Values.imageTag) | nindent 10 }}
           imagePullPolicy: {{ .Values.lake.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.lake.port }}
@@ -201,20 +163,14 @@ spec:
             - name: "{{ tpl $key2 $ }}"
               value: "{{ tpl (print $value2) $ }}"
             {{- end }}
-          {{- with .Values.lake.resources }}
-          resources:
-          {{- toYaml . | nindent 12 }}
-          {{- end }}
+          {{- include "common.resources" .Values.lake | nindent 10 }}
           {{- if .Values.lake.volumeMounts }}
           volumeMounts:
             {{- range $volumeMount := .Values.lake.volumeMounts }}
             - {{- $volumeMount | toYaml | nindent 14 }}
             {{- end }}
           {{- end }}
-          {{- with .Values.lake.containerSecurityContext }}
-          securityContext:
-          {{- toYaml . | nindent 12 }}
-      {{- end }}
+          {{- include "common.containerSecurityContext" .Values.lake | nindent 10 }}
       {{- if .Values.lake.volumes }}
       volumes:
         {{- range $volume := .Values.lake.volumes }}
@@ -225,17 +181,8 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       {{- end }}
-      {{- with .Values.lake.nodeSelector }}
-      nodeSelector:
-      {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.lake.affinity }}
-      affinity:
-      {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.lake.tolerations }}
-      tolerations:
-      {{- toYaml . | nindent 8 }}
-  {{- end }}
+      {{- include "common.nodeSelector" .Values.lake | nindent 6 }}
+      {{- include "common.affinity" .Values.lake | nindent 6 }}
+      {{- include "common.tolerations" .Values.lake | nindent 6 }}
 
 
